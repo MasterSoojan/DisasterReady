@@ -1,0 +1,14 @@
+# Node
+node_modules
+.next
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+disaster.db
+venv/
+
+# OS
+.DS_Store

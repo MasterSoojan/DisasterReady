@@ -1,11 +1,15 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import { useReducer } from "react";
 import Link from "next/link";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Stars, Sphere, MeshDistortMaterial, Float } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, RefreshCw, Home, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Home,
+  ArrowRight,
+} from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -14,195 +18,28 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// --- TYPES ---
-type Question = {
-  question: string;
-  options: string[];
-  answer: string;
-};
-
-// --- DATA ---
-const quizData: Question[] = [
-  {
-    question: "🌍 Which natural disaster is measured using the Richter scale?",
-    options: ["Flood", "Earthquake", "Cyclone", "Tsunami"],
-    answer: "Earthquake",
-  },
-  {
-    question: "🏛️ What does NDMA stand for?",
-    options: [
-      "National Disaster Management Authority",
-      "National Defence Management Agency",
-      "Natural Disaster Monitoring Association",
-      "National Data Management Authority",
-    ],
-    answer: "National Disaster Management Authority",
-  },
-  {
-    question: "🌡️ Which gas is responsible for global warming?",
-    options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Helium"],
-    answer: "Carbon Dioxide",
-  },
-  {
-    question: "💨 Which instrument is used to measure wind speed?",
-    options: ["Thermometer", "Seismograph", "Anemometer", "Barometer"],
-    answer: "Anemometer",
-  },
-  {
-    question: "🏠 What should you do during an earthquake?",
-    options: [
-      "Stand under a tree",
-      "Run outside immediately",
-      "Take cover under sturdy furniture",
-      "Use the elevator",
-    ],
-    answer: "Take cover under sturdy furniture",
-  },
-  {
-    question: "🌊 Cyclones in the Pacific Ocean are called?",
-    options: ["Typhoons", "Hurricanes", "Tornadoes", "Storms"],
-    answer: "Typhoons",
-  },
-  {
-    question: "🚑 What is the full form of SDRF?",
-    options: [
-      "State Disaster Response Force",
-      "State Defence Rescue Force",
-      "Severe Disaster Relief Fund",
-      "Statewide Disaster Relief Force",
-    ],
-    answer: "State Disaster Response Force",
-  },
-  {
-    question: "☔ Which natural disaster is caused by heavy rainfall and overflow of rivers?",
-    options: ["Earthquake", "Flood", "Landslide", "Volcano"],
-    answer: "Flood",
-  },
-  {
-    question: "🌀 Which scale measures the intensity of cyclones?",
-    options: [
-      "Richter Scale",
-      "Saffir-Simpson Scale",
-      "Beaufort Scale",
-      "Mercalli Scale",
-    ],
-    answer: "Saffir-Simpson Scale",
-  },
-  {
-    question: "🌊 Tsunamis are usually caused by?",
-    options: [
-      "Volcanic eruptions",
-      "Earthquakes under the sea",
-      "Heavy rainfall",
-      "Landslides",
-    ],
-    answer: "Earthquakes under the sea",
-  },
-];
-
-// --- 3D COMPONENTS ---
-
-const AnimatedGlobe = () => {
-  const meshRef = useRef<any>(null);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      // Rotate the globe slowly
-      meshRef.current.rotation.y += 0.002;
-      meshRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.2) * 0.1;
-    }
-  });
-
-  return (
-    <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
-      <Sphere args={[1, 64, 64]} ref={meshRef} scale={2.4}>
-        <MeshDistortMaterial
-          color="#4c1d95" // Deep purple/blue base
-          attach="material"
-          distort={0.4} // Wobbly effect resembling changing terrain/water
-          speed={1.5}
-          roughness={0.2}
-          metalness={0.8}
-        />
-      </Sphere>
-      {/* Atmosphere Glow */}
-      <Sphere args={[1.2, 64, 64]} scale={2.1}>
-        <meshStandardMaterial
-          color="#8b5cf6"
-          transparent
-          opacity={0.1}
-          side={2} // DoubleSide
-        />
-      </Sphere>
-    </Float>
-  );
-};
-
-const BackgroundScene = () => {
-  return (
-    <div className="absolute inset-0 -z-10 bg-gray-950">
-      <Canvas camera={{ position: [0, 0, 6], fov: 45 }}>
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1.5} color="#c084fc" />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#3b82f6" />
-        
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <AnimatedGlobe />
-      </Canvas>
-    </div>
-  );
-};
+import { quizData } from "@/features/games/quiz/questions";
+import { QuizScene } from "@/features/games/quiz/Scene";
+import { quizSession, initialQuizSession } from "@/features/games/quiz/session";
 
 // --- MAIN COMPONENT ---
 
 export default function QuizPage() {
-  const [currentQ, setCurrentQ] = useState(0);
-  const [score, setScore] = useState(0);
-  const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [answered, setAnswered] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-
-  const handleOptionClick = (option: string) => {
-    if (answered) return;
-    setAnswered(true);
-    setSelectedOption(option);
-
-    if (option === quizData[currentQ].answer) {
-      setScore(score + 1);
-      setFeedback("correct");
-    } else {
-      setFeedback("incorrect");
-    }
-  };
-
-  const handleNext = () => {
-    if (currentQ + 1 < quizData.length) {
-      setCurrentQ(currentQ + 1);
-      setFeedback(null);
-      setAnswered(false);
-      setSelectedOption(null);
-    } else {
-      setSubmitted(true);
-    }
-  };
-
-  const handleRetake = () => {
-    setCurrentQ(0);
-    setScore(0);
-    setFeedback(null);
-    setSubmitted(false);
-    setAnswered(false);
-    setSelectedOption(null);
-  };
+  const [state, dispatch] = useReducer(quizSession, initialQuizSession);
+  const { currentQ, score, submitted, selectedOption } = state;
+  const answered = selectedOption !== null;
+  const handleOptionClick = (option: string) =>
+    dispatch({ type: "answer", option });
+  const handleNext = () => dispatch({ type: "next" });
+  const handleRetake = () => dispatch({ type: "retake" });
 
   const averageScore = Math.ceil(quizData.length / 2);
   const progress = ((currentQ + 1) / quizData.length) * 100;
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden text-white font-sans">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gray-950 py-8 text-white font-sans">
       {/* 3D Background */}
-      <BackgroundScene />
+      <QuizScene />
 
       <div className="relative z-10 w-full max-w-2xl px-4">
         {/* Header Title */}
@@ -216,10 +53,20 @@ export default function QuizPage() {
             Disaster Awareness
           </h1>
           <p className="mt-2 text-purple-200 text-lg font-medium opacity-80">
-            Test your knowledge. Save the planet.
+            Practice the supplied questions. This is not a safety qualification.
           </p>
         </motion.div>
 
+        <p className="mb-4 text-center text-sm text-slate-300">
+          Results last for this page visit only; they are not saved to your
+          account. Content needs expert review.
+        </p>
+        <Link
+          href="/games"
+          className="mb-4 inline-block rounded-full border border-white/30 px-4 py-2"
+        >
+          Back to games
+        </Link>
         <AnimatePresence mode="wait">
           {!submitted ? (
             <motion.div
@@ -231,7 +78,14 @@ export default function QuizPage() {
               className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl ring-1 ring-white/10"
             >
               {/* Progress Bar */}
-              <div className="w-full bg-gray-700/50 rounded-full h-2.5 mb-6 overflow-hidden">
+              <div
+                role="progressbar"
+                aria-label="Quiz progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress}
+                className="w-full bg-gray-700/50 rounded-full h-2.5 mb-6 overflow-hidden"
+              >
                 <motion.div
                   className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full"
                   initial={{ width: 0 }}
@@ -265,13 +119,15 @@ export default function QuizPage() {
                 {quizData[currentQ].options.map((option, i) => {
                   const isSelected = selectedOption === option;
                   const isCorrectAnswer = option === quizData[currentQ].answer;
-                  
+
                   // Determine Button Styles based on state
-                  let btnStyle = "bg-white/5 border-white/10 hover:bg-white/10 hover:border-purple-400/50";
-                  
+                  let btnStyle =
+                    "bg-white/5 border-white/10 hover:bg-white/10 hover:border-purple-400/50";
+
                   if (answered) {
                     if (isCorrectAnswer) {
-                      btnStyle = "bg-green-500/20 border-green-500 text-green-100";
+                      btnStyle =
+                        "bg-green-500/20 border-green-500 text-green-100";
                     } else if (isSelected && !isCorrectAnswer) {
                       btnStyle = "bg-red-500/20 border-red-500 text-red-100";
                     } else {
@@ -288,17 +144,28 @@ export default function QuizPage() {
                       disabled={answered}
                       className={cn(
                         "relative p-4 rounded-xl border-2 text-left text-lg font-medium transition-all duration-300 flex items-center justify-between group",
-                        btnStyle
+                        btnStyle,
                       )}
                     >
                       <span>{option}</span>
-                      {answered && isCorrectAnswer && <CheckCircle2 className="w-6 h-6 text-green-400" />}
-                      {answered && isSelected && !isCorrectAnswer && <XCircle className="w-6 h-6 text-red-400" />}
+                      {answered && isCorrectAnswer && (
+                        <CheckCircle2 className="w-6 h-6 text-green-400" />
+                      )}
+                      {answered && isSelected && !isCorrectAnswer && (
+                        <XCircle className="w-6 h-6 text-red-400" />
+                      )}
                     </motion.button>
                   );
                 })}
               </div>
 
+              {answered && (
+                <p role="status" className="mt-4">
+                  {selectedOption === quizData[currentQ].answer
+                    ? "Correct."
+                    : `Not quite. The expected answer is: ${quizData[currentQ].answer}.`}
+                </p>
+              )}
               {/* Footer / Next Button */}
               <div className="h-16 mt-6 flex items-center justify-end">
                 {answered && (
@@ -308,7 +175,10 @@ export default function QuizPage() {
                     onClick={handleNext}
                     className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-full shadow-lg shadow-purple-900/40 transition-all"
                   >
-                    Next Question <ArrowRight className="w-5 h-5" />
+                    {currentQ === quizData.length - 1
+                      ? "View results"
+                      : "Next Question"}{" "}
+                    <ArrowRight className="w-5 h-5" />
                   </motion.button>
                 )}
               </div>
@@ -323,9 +193,14 @@ export default function QuizPage() {
               className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-10 text-center shadow-2xl max-w-lg mx-auto"
             >
               <div className="mb-6 flex justify-center">
-                <div className={cn("p-6 rounded-full border-4 shadow-xl", 
-                  score >= averageScore ? "bg-green-500/20 border-green-500 shadow-green-900/50" : "bg-orange-500/20 border-orange-500 shadow-orange-900/50"
-                )}>
+                <div
+                  className={cn(
+                    "p-6 rounded-full border-4 shadow-xl",
+                    score >= averageScore
+                      ? "bg-green-500/20 border-green-500 shadow-green-900/50"
+                      : "bg-orange-500/20 border-orange-500 shadow-orange-900/50",
+                  )}
+                >
                   {score >= averageScore ? (
                     <CheckCircle2 className="w-16 h-16 text-green-400" />
                   ) : (
@@ -335,14 +210,18 @@ export default function QuizPage() {
               </div>
 
               <h2 className="text-4xl font-extrabold mb-2 text-white">
-                {score >= averageScore ? "Mission Accomplished!" : "Mission Incomplete"}
+                {score >= averageScore
+                  ? "Mission Accomplished!"
+                  : "Mission Incomplete"}
               </h2>
-              
+
               <p className="text-xl text-gray-300 mb-8">
-                You scored <span className="text-white font-bold text-2xl">{score}</span> out of {quizData.length}
+                You scored{" "}
+                <span className="text-white font-bold text-2xl">{score}</span>{" "}
+                out of {quizData.length}
               </p>
 
-              <div className="flex gap-4 justify-center">
+              <div className="flex flex-wrap gap-4 justify-center">
                 <button
                   onClick={handleRetake}
                   className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-full transition-all"

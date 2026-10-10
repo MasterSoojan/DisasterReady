@@ -1,0 +1,12 @@
+"""Environment configuration. SQLite defaults to the backend working directory."""
+
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./disaster.db")
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(",")
+    if origin.strip()
+]

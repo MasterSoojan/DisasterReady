@@ -3,12 +3,17 @@ node_modules
 .next
 .env
 .env.local
+.env.*
+!.env.example
 
 # Python
 __pycache__/
 *.pyc
 disaster.db
 venv/
+.venv/
+.pytest_cache/
+*.tsbuildinfo
 
 # OS
 .DS_Store

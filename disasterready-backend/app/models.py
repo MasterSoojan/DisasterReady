@@ -11,11 +11,13 @@ class User(Base):
     email = Column(String, unique=True)
     password = Column(String)
 
+
 class Quiz(Base):
     __tablename__ = "quizzes"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
+
 
 class Question(Base):
     __tablename__ = "questions"
@@ -29,6 +31,7 @@ class Question(Base):
     option4 = Column(String)
     correct_answer = Column(String)
 
+
 class Score(Base):
     __tablename__ = "scores"
 
@@ -36,6 +39,7 @@ class Score(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     quiz_id = Column(Integer, ForeignKey("quizzes.id"))
     score = Column(Integer)
+
 
 class ChatMessage(Base):
     __tablename__ = "chat_messages"

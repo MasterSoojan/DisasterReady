@@ -41,7 +41,7 @@ test("Spot Finder accepts keyboard choices once, progresses every room, and rese
     await spot.focus();
     await page.keyboard.press("Enter");
     await page.keyboard.press("Enter");
-    await expect(page.locator(".score-value")).toHaveText(
+    await expect(page.getByLabel("Safety score", { exact: true })).toHaveText(
       String((index + 1) * 100),
     );
     await page
@@ -52,11 +52,15 @@ test("Spot Finder accepts keyboard choices once, progresses every room, and rese
   }
   await expect(page.getByText("MISSION REPORT", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "REPLAY SIMULATION" }).click();
-  await expect(page.locator(".score-value")).toHaveText("0");
+  await expect(page.getByLabel("Safety score", { exact: true })).toHaveText(
+    "0",
+  );
   await page
     .getByRole("button", { name: rooms[0].unsafeSpots[0].label, exact: true })
     .click();
-  await expect(page.locator(".score-value")).toHaveText("-20");
+  await expect(page.getByLabel("Safety score", { exact: true })).toHaveText(
+    "-20",
+  );
 });
 
 async function playerPosition(page: Page) {

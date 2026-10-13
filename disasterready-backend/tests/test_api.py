@@ -76,3 +76,33 @@ def test_startup_initialization_and_cors(monkeypatch):
         )
         assert denied.status_code == 400
         assert "access-control-allow-origin" not in denied.headers
+
+
+def test_real_database_startup_and_session_persistence(monkeypatch, tmp_path):
+    from sqlalchemy import inspect
+    from sqlalchemy.orm import sessionmaker
+    from app import database
+
+    # Unlike the routing fixture, exercise the real initializer and get_db
+    # dependency. A fresh temporary file proves startup creates the schema;
+    # no existing development database or account records are used.
+    location = tmp_path / "startup.db"
+    engine = create_engine(
+        f"sqlite:///{location}", connect_args={"check_same_thread": False}
+    )
+    monkeypatch.setattr(database, "engine", engine)
+    monkeypatch.setattr(database, "SessionLocal", sessionmaker(bind=engine))
+    try:
+        assert not location.exists()
+        with TestClient(create_app()) as http:
+            assert location.exists()
+            assert "chat_messages" in inspect(engine).get_table_names()
+            assert http.post("/chat", json={"message": "hello"}).status_code == 200
+            assert http.post("/chat", json={"message": " "}).status_code == 422
+        # Startup is idempotent and reopening does not erase a saved message.
+        with TestClient(create_app()):
+            with Session(engine) as session:
+                messages = session.scalars(select(ChatMessage)).all()
+                assert [message.user_message for message in messages] == ["hello"]
+    finally:
+        engine.dispose()

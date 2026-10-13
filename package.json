@@ -3,9 +3,11 @@
   "private": true,
   "scripts": {
     "install:frontend": "npm --prefix sih_fron ci",
+    "install:backend": "cd disasterready-backend && .venv/bin/python -m pip install -r requirements-dev.txt",
     "dev:frontend": "npm --prefix sih_fron run dev",
     "dev:backend": "cd disasterready-backend && .venv/bin/python -m uvicorn app.main:app --reload",
     "check:frontend": "npm --prefix sih_fron run check",
+    "check:backend": "npm run test:backend && cd disasterready-backend && .venv/bin/python -m pip check",
     "test:backend": "cd disasterready-backend && .venv/bin/python -m pytest -q"
   }
 }
